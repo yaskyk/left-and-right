@@ -1,0 +1,16 @@
+{
+  "name": "Metrónomo L/R",
+  "short_name": "Metrónomo",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#2c2c2c",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

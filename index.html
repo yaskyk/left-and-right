@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Metrónomo L/R (A Prueba de Fallos)</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --card-color: #2c2c2c;
+            --text-color: #f0f0f0;
+            --primary-color: #00aaff;
+            --accent-color-start: #28a745;
+            --accent-color-stop: #dc3545;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+        }
+        .container {
+            background-color: var(--card-color);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            width: 90%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        h1 { margin: 0; font-size: 2em; color: var(--primary-color); }
+        .control-group { display: flex; flex-direction: column; gap: 10px; }
+        label { font-size: 1.1em; font-weight: bold; }
+        .bpm-display { font-size: 1.5em; font-weight: bold; color: var(--primary-color); }
+        input[type="range"] { -webkit-appearance: none; width: 100%; height: 10px; background: #444; border-radius: 5px; outline: none; opacity: 0.7; transition: opacity .2s; }
+        input[type="range"]:hover { opacity: 1; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 25px; height: 25px; background: var(--primary-color); cursor: pointer; border-radius: 50%; }
+        input[type="range"]::-moz-range-thumb { width: 25px; height: 25px; background: var(--primary-color); cursor: pointer; border-radius: 50%; }
+        select { padding: 12px; font-size: 1em; border-radius: 8px; border: 2px solid #555; background-color: #333; color: var(--text-color); cursor: pointer; }
+        #toggle-btn { padding: 15px 20px; font-size: 1.2em; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s ease, transform 0.1s ease; color: white; background-color: var(--accent-color-start); }
+        #toggle-btn.active { background-color: var(--accent-color-stop); }
+        #toggle-btn:active:not(:disabled) { transform: scale(0.98); }
+        #status { font-size: 1.8em; font-weight: bold; min-height: 1.2em; transition: transform 0.1s ease, color 0.1s ease; }
+        #status.beat-left { transform: scale(1.1); color: #ffdd57; }
+        #status.beat-right { transform: scale(1.1); color: #57ffdd; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Metrónomo L/R</h1>
+        <div class="control-group">
+            <label for="bpm">Ritmo (BPM): <span id="bpm-value" class="bpm-display">120</span></label>
+            <input type="range" id="bpm" min="40" max="240" value="120">
+        </div>
+        <div class="control-group">
+            <label for="pattern">Patrón de Sonido</label>
+            <select id="pattern">
+                <option value="LR">Izquierda - Derecha</option>
+                <option value="L">Solo Izquierda</option>
+                <option value="R">Solo Derecha</option>
+                <option value="LLR">Izq - Izq - Der</option>
+                <option value="LRR">Izq - Der - Der</option>
+            </select>
+        </div>
+        <button id="toggle-btn">Iniciar</button>
+        <div id="status">Detenido</div>
+    </div>
+    
+    <!-- Estos elementos de audio ahora cargan los sonidos desde archivos externos -->
+    <audio id="left-audio" src="sounds/left.mp3" preload="auto"></audio>
+    <audio id="right-audio" src="sounds/right.mp3" preload="auto"></audio>
+
+    <script>
+        const bpmSlider = document.getElementById('bpm');
+        const bpmValueSpan = document.getElementById('bpm-value');
+        const patternSelect = document.getElementById('pattern');
+        const toggleBtn = document.getElementById('toggle-btn');
+        const statusDiv = document.getElementById('status');
+
+        const leftAudio = document.getElementById('left-audio');
+        const rightAudio = document.getElementById('right-audio');
+
+        let isPlaying = false;
+        let intervalId = null;
+        let beatCounter = 0;
+        let bpm = 120;
+        let pattern = 'LR';
+
+        function playBeat() {
+            const char = pattern[beatCounter];
+            
+            if (char === 'L') {
+                leftAudio.currentTime = 0;
+                leftAudio.play();
+                statusDiv.textContent = 'Left';
+                statusDiv.className = 'beat-left';
+            } else if (char === 'R') {
+                rightAudio.currentTime = 0;
+                rightAudio.play();
+                statusDiv.textContent = 'Right';
+                statusDiv.className = 'beat-right';
+            }
+            
+            setTimeout(() => { if (isPlaying) statusDiv.className = ''; }, 100);
+            beatCounter = (beatCounter + 1) % pattern.length;
+        }
+
+        function startMetronome() {
+            isPlaying = true;
+            toggleBtn.textContent = 'Parar';
+            toggleBtn.classList.add('active');
+            beatCounter = 0;
+            const interval = 60000 / bpm;
+            playBeat();
+            intervalId = setInterval(playBeat, interval);
+        }
+
+        function stopMetronome() {
+            isPlaying = false;
+            clearInterval(intervalId);
+            intervalId = null;
+            toggleBtn.textContent = 'Iniciar';
+            toggleBtn.classList.remove('active');
+            statusDiv.textContent = 'Detenido';
+            statusDiv.className = '';
+        }
+
+        function toggleMetronome() {
+            if (isPlaying) {
+                stopMetronome();
+            } else {
+                startMetronome();
+            }
+        }
+        
+        toggleBtn.addEventListener('click', toggleMetronome);
+        bpmSlider.addEventListener('input', () => { bpm = parseInt(bpmSlider.value, 10); bpmValueSpan.textContent = bpm; if (isPlaying) { stopMetronome(); startMetronome(); } });
+        patternSelect.addEventListener('change', () => { pattern = patternSelect.value; if (isPlaying) { stopMetronome(); startMetronome(); } });
+    </script>
+
+</body>
+</html>
